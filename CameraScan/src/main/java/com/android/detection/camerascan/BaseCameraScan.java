@@ -6,7 +6,6 @@ import android.content.pm.PackageManager;
 import android.util.Size;
 import android.view.View;
 
-import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.Camera;
@@ -24,8 +23,6 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.android.detection.camerascan.analyze.Analyzer;
-import com.android.detection.camerascan.config.CameraConfig;
-import com.king.logx.LogX;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,11 +32,11 @@ import java.util.concurrent.Executors;
  * <p>
  * 快速实现扫描识别主要有以下几种方式：
  * <p>
- * 1、通过继承 {@link BaseCameraScanActivity}或者{@link BaseCameraScanFragment}或其子类，可快速实现扫描识别。
+ * 1、通过继承 {@link BaseCameraScanActivity}或其子类，可快速实现扫描识别。
  * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
  * <p>
  * 2、在你项目的Activity或者Fragment中实例化一个{@link BaseCameraScan}。（适用于想在扫描界面写交互逻辑，又因为项目
- * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}或{@link BaseCameraScanFragment}时使用）
+ * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}时使用）
  * <p>
  * 3、继承{@link CameraScan}自己实现一个，可参照默认实现类{@link BaseCameraScan}，其他步骤同方式2。（高级用法，谨慎使用）
  */
@@ -178,7 +175,7 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                     System.out.println("这里的回调分辨率是》ImageAnalysis resolution: " + imageResolutionInfo.getResolution());
                 }
             } catch (Exception e) {
-                LogX.e(e);
+                e.printStackTrace();
             }
 
         }, ContextCompat.getMainExecutor(mContext));
@@ -209,14 +206,9 @@ public class BaseCameraScan<T> extends CameraScan<T> {
             try {
                 mCameraProviderFuture.get().unbindAll();
             } catch (Exception e) {
-                LogX.e(e);
+                e.printStackTrace();
             }
         }
-    }
-
-    @Override
-    public CameraScan<T> setCameraConfig(CameraConfig cameraConfig) {
-        return this;
     }
 
     @Override
@@ -238,30 +230,6 @@ public class BaseCameraScan<T> extends CameraScan<T> {
     }
 
     @Override
-    public void zoomIn() {
-    }
-
-    @Override
-    public void zoomOut() {
-    }
-
-    @Override
-    public void zoomTo(float ratio) {
-    }
-
-    @Override
-    public void lineZoomIn() {
-    }
-
-    @Override
-    public void lineZoomOut() {
-    }
-
-    @Override
-    public void lineZoomTo(@FloatRange(from = 0.0, to = 1.0) float linearZoom) {
-    }
-
-    @Override
     public void enableTorch(boolean torch) {
     }
 
@@ -273,16 +241,6 @@ public class BaseCameraScan<T> extends CameraScan<T> {
     @Override
     public boolean hasFlashUnit() {
         return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
-    }
-
-    @Override
-    public CameraScan<T> setVibrate(boolean vibrate) {
-        return this;
-    }
-
-    @Override
-    public CameraScan<T> setPlayBeep(boolean playBeep) {
-        return this;
     }
 
     @Override
@@ -308,16 +266,6 @@ public class BaseCameraScan<T> extends CameraScan<T> {
 
     @Override
     public CameraScan<T> bindFlashlightView(@Nullable View flashlightView) {
-        return this;
-    }
-
-    @Override
-    public CameraScan<T> setDarkLightLux(float lightLux) {
-        return this;
-    }
-
-    @Override
-    public CameraScan<T> setBrightLightLux(float lightLux) {
         return this;
     }
 

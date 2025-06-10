@@ -1,6 +1,7 @@
 package com.android.detection.detection.analyze;
 
 import android.graphics.ImageFormat;
+import android.media.Image;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -78,6 +79,53 @@ public abstract class CommonAnalyzer<T> implements Analyzer<T> {
             });
         } catch (Exception e) {
             queue.add(nv21Data);
+            listener.onFailure(e);
+        }
+    }
+
+    @Override
+    public void analyze(@NonNull Image image, @NonNull OnAnalyzeListener<T> listener) {
+        if (!joinQueue.get()) {
+            int imageSize = image.getWidth() * image.getHeight();
+            byte[] bytes = new byte[imageSize + 2 * (imageSize / 4)];
+            queue.add(bytes);
+            joinQueue.set(true);
+        }
+        final byte[] nv21Data = queue.poll();
+        if (nv21Data == null) {
+            return;
+        }
+        try {
+            ImageUtils.yuv_420_888toNv21(image, nv21Data);
+            InputImage inputImage = InputImage.fromByteArray(
+                    nv21Data,
+                    image.getWidth(),
+                    image.getHeight(),
+                    0,
+                    InputImage.IMAGE_FORMAT_NV21
+            );
+            // 检测分析
+            detectInImage(inputImage).addOnSuccessListener(result -> {
+                if (isNullOrEmpty(result)) {
+//                    queue.add(nv21Data);
+                    joinQueue.set(false);
+                    listener.onFailure(null);
+                } else {
+                    FrameMetadata frameMetadata = new FrameMetadata(
+                            4096,
+                            3072,
+                            0);
+                    joinQueue.set(false);
+                    listener.onSuccess(new AnalyzeResult<>(nv21Data, ImageFormat.NV21, frameMetadata, result));
+                }
+            }).addOnFailureListener(e -> {
+//                queue.add(nv21Data);
+                joinQueue.set(false);
+                listener.onFailure(e);
+            });
+        } catch (Exception e) {
+            joinQueue.set(false);
+//            queue.add(nv21Data);
             listener.onFailure(e);
         }
     }

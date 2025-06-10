@@ -9,7 +9,6 @@ import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import com.king.logx.LogX
 
 fun Bitmap.drawRect(block: (canvas: Canvas, paint: Paint) -> Unit): Bitmap {
     val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -26,7 +25,7 @@ fun Bitmap.drawRect(block: (canvas: Canvas, paint: Paint) -> Unit): Bitmap {
         canvas.save()
         canvas.restore()
     } catch (e: Exception) {
-        LogX.w(e)
+        e.printStackTrace()
     }
     return result
 }

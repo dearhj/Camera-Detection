@@ -9,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
-import com.king.logx.LogX;
 
 import java.util.Arrays;
 
@@ -63,7 +62,7 @@ public class PermissionUtils {
      * @param requestCode 请求码
      */
     public static void requestPermissions(@NonNull Activity activity, @NonNull String[] permissions, @IntRange(from = 0) int requestCode) {
-        LogX.d("requestPermissions: %s", Arrays.toString(permissions));
+        System.out.println("requestPermissions: %s " +  Arrays.toString(permissions));
         ActivityCompat.requestPermissions(activity, permissions, requestCode);
     }
 
@@ -75,7 +74,7 @@ public class PermissionUtils {
      * @param requestCode 请求码
      */
     public static void requestPermissions(@NonNull Fragment fragment, @NonNull String[] permissions, @IntRange(from = 0) int requestCode) {
-        LogX.d("requestPermissions: %s", Arrays.toString(permissions));
+        System.out.println("requestPermissions: %s " +  Arrays.toString(permissions));
         fragment.requestPermissions(permissions, requestCode);
     }
 

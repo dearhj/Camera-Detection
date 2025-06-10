@@ -1,5 +1,7 @@
 package com.android.detection.camerascan.analyze;
 
+import android.media.Image;
+
 import com.android.detection.camerascan.AnalyzeResult;
 
 import androidx.annotation.NonNull;
@@ -20,6 +22,7 @@ public interface Analyzer<T> {
      * @param listener   分析监听器，参见：{@link OnAnalyzeListener}
      */
     void analyze(@NonNull ImageProxy imageProxy, @NonNull OnAnalyzeListener<T> listener);
+    void analyze(@NonNull Image imageProxy, @NonNull OnAnalyzeListener<T> listener);
 
     /**
      * Analyze listener

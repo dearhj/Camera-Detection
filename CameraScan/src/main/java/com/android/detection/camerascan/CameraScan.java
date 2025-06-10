@@ -1,7 +1,5 @@
 package com.android.detection.camerascan;
 
-import android.content.Intent;
-import android.os.Bundle;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -9,28 +7,22 @@ import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 
 import com.android.detection.camerascan.analyze.Analyzer;
-import com.android.detection.camerascan.config.CameraConfig;
 
 /**
  * 相机扫描基类定义；内置的默认实现见：{@link BaseCameraScan}
  * <p>
  * 快速实现扫描识别主要有以下几种方式：
  * <p>
- * 1、通过继承 {@link BaseCameraScanActivity}或者{@link BaseCameraScanFragment}或其子类，可快速实现扫描识别。
+ * 1、通过继承 {@link BaseCameraScanActivity}或其子类，可快速实现扫描识别。
  * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
  * <p>
  * 2、在你项目的Activity或者Fragment中实例化一个{@link BaseCameraScan}。（适用于想在扫描界面写交互逻辑，又因为项目
- * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}或{@link BaseCameraScanFragment}时使用）
+ * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}时使用）
  * <p>
  * 3、继承{@link CameraScan}自己实现一个，可参照默认实现类{@link BaseCameraScan}，其他步骤同方式2。（高级用法，谨慎使用）
  */
 @SuppressWarnings("unused")
 public abstract class CameraScan<T> implements ICamera, ICameraControl {
-
-    /**
-     * 扫描返回结果的key；解析方式可参见：{@link #parseScanResult(Intent)}
-     */
-    public static String SCAN_RESULT = "SCAN_RESULT";
 
     /**
      * A camera on the device facing the same direction as the device's screen.
@@ -49,58 +41,6 @@ public abstract class CameraScan<T> implements ICamera, ICameraControl {
      * 纵横比：16:9
      */
     public static final float ASPECT_RATIO_16_9 = 16.0F / 9.0F;
-
-    /**
-     * 是否需要支持触摸缩放
-     */
-    private boolean isNeedTouchZoom = true;
-    /**
-     * 扩展参数
-     */
-    protected Bundle mExtras;
-
-    /**
-     * 是否需要支持触摸缩放
-     *
-     * @return 返回是否需要支持触摸缩放
-     */
-    protected boolean isNeedTouchZoom() {
-        return isNeedTouchZoom;
-    }
-
-    /**
-     * 设置是否需要支持触摸缩放
-     *
-     * @param needTouchZoom 是否需要支持触摸缩放
-     * @return {@link CameraScan}
-     */
-    public CameraScan<T> setNeedTouchZoom(boolean needTouchZoom) {
-        isNeedTouchZoom = needTouchZoom;
-        return this;
-    }
-
-    /**
-     * 获取扩展参数：当{@link CameraScan}的默认实现不满足你的需求时，你可以通过自定义实现一个{@link CameraScan}；
-     * 然后通过此方法获取扩展参数，进行扩展参数的传递；需使用时直接在实现类中获取 {@link #mExtras}即可。
-     *
-     * @return {@link Bundle}
-     */
-    @NonNull
-    public Bundle getExtras() {
-        if (mExtras == null) {
-            mExtras = new Bundle();
-        }
-        return mExtras;
-    }
-
-    /**
-     * 设置相机配置，请在{@link #startCamera()}之前调用
-     *
-     * @param cameraConfig 相机配置
-     * @return {@link CameraScan}
-     */
-    public abstract CameraScan<T> setCameraConfig(CameraConfig cameraConfig);
-
     /**
      * 设置是否分析图像，默认为：true；通过此方法可以动态控制是否分析图像；在连续扫描识别时，可能会用到。
      * <p>
@@ -134,23 +74,6 @@ public abstract class CameraScan<T> implements ICamera, ICameraControl {
      * @return {@link CameraScan}
      */
     public abstract CameraScan<T> setAnalyzer(Analyzer<T> analyzer);
-
-    /**
-     * 设置是否振动
-     *
-     * @param vibrate 是否振动
-     * @return {@link CameraScan}
-     */
-    public abstract CameraScan<T> setVibrate(boolean vibrate);
-
-    /**
-     * 设置是否播放提示音
-     *
-     * @param playBeep 是否播放蜂鸣提示音
-     * @return {@link CameraScan}
-     */
-    public abstract CameraScan<T> setPlayBeep(boolean playBeep);
-
     /**
      * 设置扫描结果回调
      *
@@ -166,23 +89,6 @@ public abstract class CameraScan<T> implements ICamera, ICameraControl {
      * @return {@link CameraScan}
      */
     public abstract CameraScan<T> bindFlashlightView(@Nullable View v);
-
-    /**
-     * 设置光照强度足够暗的阈值（单位：lux），需要通过{@link #bindFlashlightView(View)}绑定手电筒才有效
-     *
-     * @param lightLux 光照度阈值
-     * @return {@link CameraScan}
-     */
-    public abstract CameraScan<T> setDarkLightLux(float lightLux);
-
-    /**
-     * 设置光照强度足够明亮的阈值（单位：lux），需要通过{@link #bindFlashlightView(View)}绑定手电筒才有效
-     *
-     * @param lightLux 光照度阈值
-     * @return {@link CameraScan}
-     */
-    public abstract CameraScan<T> setBrightLightLux(float lightLux);
-
     /**
      * 扫描结果回调
      *
@@ -202,20 +108,6 @@ public abstract class CameraScan<T> implements ICamera, ICameraControl {
         default void onScanResultFailure() {
 
         }
-    }
-
-    /**
-     * 解析扫描结果
-     *
-     * @param data 需解析的意图数据
-     * @return 返回解析结果
-     */
-    @Nullable
-    public static String parseScanResult(Intent data) {
-        if (data != null) {
-            return data.getStringExtra(SCAN_RESULT);
-        }
-        return null;
     }
 
 }

@@ -6,7 +6,6 @@ import android.os.Bundle;
 
 import com.android.detection.camerascan.analyze.Analyzer;
 import com.android.detection.camerascan.util.PermissionUtils;
-import com.king.logx.LogX;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,11 +18,11 @@ import androidx.core.view.WindowCompat;
  * <p>
  * 快速实现扫描识别主要有以下几种方式
  * <p>
- * 1、通过继承 {@link BaseCameraScanActivity}或者{@link BaseCameraScanFragment}或其子类，可快速实现扫描识别。
+ * 1、通过继承 {@link BaseCameraScanActivity}或其子类，可快速实现扫描识别。
  * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
  * <p>
  * 2、在你项目的Activity或者Fragment中实例化一个{@link BaseCameraScan}。（适用于想在扫描界面写交互逻辑，又因为项目
- * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}或{@link BaseCameraScanFragment}时使用）
+ * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}时使用）
  * <p>
  * 3、继承{@link CameraScan}自己实现一个，可参照默认实现类{@link BaseCameraScan}，其他步骤同方式2。（高级用法，谨慎使用）
  */
@@ -80,7 +79,7 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
             if (PermissionUtils.checkPermission(this, Manifest.permission.CAMERA)) {
                 mCameraScan.startCamera();
             } else {
-                LogX.d("Camera permission not granted, requesting permission.");
+                System.out.println("Camera permission not granted, requesting permission.");
                 PermissionUtils.requestPermission(this, Manifest.permission.CAMERA, CAMERA_PERMISSION_REQUEST_CODE);
             }
         }

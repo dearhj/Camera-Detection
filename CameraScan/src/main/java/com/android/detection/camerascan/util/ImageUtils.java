@@ -1,5 +1,7 @@
 package com.android.detection.camerascan.util;
 
+import android.media.Image;
+
 import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
 
@@ -50,6 +52,54 @@ public class ImageUtils {
         int uRowStride = uPlane.getRowStride();
         int vPixelStride = vPlane.getPixelStride();
         int uPixelStride = uPlane.getPixelStride();
+
+        // Interleave the u and v frames, filling up the rest of the buffer. Use two line buffers to
+        // perform faster bulk gets from the byte buffers.
+        byte[] vLineBuffer = new byte[vRowStride];
+        byte[] uLineBuffer = new byte[uRowStride];
+        for (int row = 0; row < chromaHeight; row++) {
+            vBuffer.get(vLineBuffer, 0, Math.min(vRowStride, vBuffer.remaining()));
+            uBuffer.get(uLineBuffer, 0, Math.min(uRowStride, uBuffer.remaining()));
+            int vLineBufferPosition = 0;
+            int uLineBufferPosition = 0;
+            for (int col = 0; col < chromaWidth; col++) {
+                nv21[position++] = vLineBuffer[vLineBufferPosition];
+                nv21[position++] = uLineBuffer[uLineBufferPosition];
+                vLineBufferPosition += vPixelStride;
+                uLineBufferPosition += uPixelStride;
+            }
+        }
+    }
+
+    public static void yuv_420_888toNv21(@NonNull Image image, @NonNull byte[] nv21) {
+        Image.Plane[] planes = image.getPlanes();
+        ByteBuffer yBuffer = planes[0].getBuffer();
+        ByteBuffer uBuffer = planes[1].getBuffer();
+        ByteBuffer vBuffer = planes[2].getBuffer();
+
+        yBuffer.rewind();
+        uBuffer.rewind();
+        vBuffer.rewind();
+
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+
+        int position = 0;
+
+        // Add the full y buffer to the array. If rowStride > 1, some padding may be skipped.
+        for (int row = 0; row < image.getHeight(); row++) {
+            yBuffer.get(nv21, position, image.getWidth());
+            position += image.getWidth();
+            yBuffer.position(Math.min(ySize, yBuffer.position() - image.getWidth() + planes[0].getRowStride()));
+        }
+
+        int chromaHeight = image.getHeight() / 2;
+        int chromaWidth = image.getWidth() / 2;
+        int vRowStride = vBuffer.remaining() / chromaHeight;
+        int uRowStride = uBuffer.remaining() / chromaHeight;
+        int vPixelStride = planes[2].getPixelStride();
+        int uPixelStride = planes[1].getPixelStride();
 
         // Interleave the u and v frames, filling up the rest of the buffer. Use two line buffers to
         // perform faster bulk gets from the byte buffers.
