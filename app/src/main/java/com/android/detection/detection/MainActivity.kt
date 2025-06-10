@@ -3,19 +3,14 @@ package com.android.detection.detection
 
 import android.widget.ImageView
 import com.android.detection.camerascan.AnalyzeResult
+import com.android.detection.camerascan.BaseCameraScanActivity
+import com.android.detection.camerascan.analyze.Analyzer
+import com.android.detection.detection.analyze.ObjectDetectionAnalyzer
 import com.google.mlkit.vision.objects.DetectedObject
 import com.king.app.dialog.AppDialog
 import com.king.app.dialog.AppDialogConfig
 
-class MainActivity : ObjectCameraScanActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_main)
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            WindowCompat.setDecorFitsSystemWindows(window, false)
-//            window.isNavigationBarContrastEnforced = false
-//        }
-//    }
+class MainActivity : BaseCameraScanActivity<MutableList<DetectedObject>>() {
 
     override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>) {
 //        cameraScan.setAnalyzeImage(false)
@@ -38,5 +33,9 @@ class MainActivity : ObjectCameraScanActivity() {
         val imageView = config.getView<ImageView>(R.id.ivDialogContent)
         imageView.setImageBitmap(bitmap)
         AppDialog.INSTANCE.showDialog(config, false)
+    }
+
+    override fun createAnalyzer(): Analyzer<MutableList<DetectedObject>?>? {
+        return ObjectDetectionAnalyzer()
     }
 }

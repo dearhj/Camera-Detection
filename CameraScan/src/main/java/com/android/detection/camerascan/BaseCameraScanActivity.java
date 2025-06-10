@@ -1,8 +1,8 @@
 package com.android.detection.camerascan;
 
 import android.Manifest;
+import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 
 import com.android.detection.camerascan.analyze.Analyzer;
 import com.android.detection.camerascan.util.PermissionUtils;
@@ -12,11 +12,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.view.PreviewView;
+import androidx.core.view.WindowCompat;
 
 /**
  * 相机扫描基类；{@link BaseCameraScanActivity} 内部持有{@link CameraScan}，便于快速实现扫描识别。
  * <p>
- * 快速实现扫描识别主要有以下几种方式：
+ * 快速实现扫描识别主要有以下几种方式
  * <p>
  * 1、通过继承 {@link BaseCameraScanActivity}或者{@link BaseCameraScanFragment}或其子类，可快速实现扫描识别。
  * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
@@ -36,10 +37,7 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
      * 预览视图
      */
     protected PreviewView previewView;
-    /**
-     * 手电筒视图
-     */
-    protected View ivFlashlight;
+
     /**
      * CameraScan
      */
@@ -48,8 +46,10 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (isContentView()) {
-            setContentView(getLayoutId());
+        if (isContentView()) setContentView(getLayoutId());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            getWindow().setNavigationBarContrastEnforced(false);
         }
         initUI();
     }
@@ -59,16 +59,8 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
      */
     public void initUI() {
         previewView = findViewById(getPreviewViewId());
-        int ivFlashlightId = getFlashlightId();
-        if (ivFlashlightId != View.NO_ID && ivFlashlightId != 0) {
-            ivFlashlight = findViewById(ivFlashlightId);
-            if (ivFlashlight != null) {
-                ivFlashlight.setOnClickListener(v -> onClickFlashlight());
-            }
-        }
         mCameraScan = createCameraScan(previewView);
         initCameraScan(mCameraScan);
-        startCamera();
     }
 
     /**
@@ -76,29 +68,8 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
      */
     public void initCameraScan(@NonNull CameraScan<T> cameraScan) {
         cameraScan.setAnalyzer(createAnalyzer())
-                .bindFlashlightView(ivFlashlight)
                 .setOnScanResultCallback(this);
 
-    }
-
-    /**
-     * 点击手电筒
-     */
-    protected void onClickFlashlight() {
-        toggleTorchState();
-    }
-
-    /**
-     * 切换闪光灯状态（开启/关闭）
-     */
-    protected void toggleTorchState() {
-        if (getCameraScan() != null) {
-            boolean isTorch = getCameraScan().isTorchEnabled();
-            getCameraScan().enableTorch(!isTorch);
-            if (ivFlashlight != null) {
-                ivFlashlight.setSelected(!isTorch);
-            }
-        }
     }
 
     /**
@@ -147,6 +118,13 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
     }
 
     @Override
+    protected void onResume() {
+        startCamera();
+        super.onResume();
+    }
+
+
+    @Override
     protected void onDestroy() {
         releaseCamera();
         super.onDestroy();
@@ -177,15 +155,6 @@ public abstract class BaseCameraScanActivity<T> extends AppCompatActivity implem
      */
     public int getPreviewViewId() {
         return R.id.previewView;
-    }
-
-    /**
-     * 获取 {@link #ivFlashlight} 的ID
-     *
-     * @return 默认返回{@code R.id.ivFlashlight}, 如果不需要手电筒按钮可以返回{@link View#NO_ID}
-     */
-    public int getFlashlightId() {
-        return R.id.ivFlashlight;
     }
 
     /**
