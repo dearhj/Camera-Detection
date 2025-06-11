@@ -7,12 +7,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.ImageProxy;
 
+import com.android.detection.detection.AnalyzeResult;
+import com.android.detection.detection.FrameMetadata;
+import com.android.detection.detection.util.ImageUtils;
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
-import com.android.detection.camerascan.AnalyzeResult;
-import com.android.detection.camerascan.FrameMetadata;
-import com.android.detection.camerascan.analyze.Analyzer;
-import com.android.detection.camerascan.util.ImageUtils;
 
 import java.util.Collection;
 import java.util.Queue;

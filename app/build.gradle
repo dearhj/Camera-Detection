@@ -40,5 +40,10 @@ dependencies {
     implementation libs.google.mlkit.obj.detection
     implementation libs.google.mlkit.vis.commom
     implementation libs.app.dialog
-    implementation project(':CameraScan')
+//    implementation project(':CameraScan')
+    // CameraX
+    implementation libs.androidx.camera.core
+    implementation libs.androidx.camera.camera2
+    implementation libs.androidx.camera.lifecycle
+    implementation libs.androidx.camera.view
 }

@@ -2,9 +2,7 @@ package com.android.detection.detection
 
 
 import android.widget.ImageView
-import com.android.detection.camerascan.AnalyzeResult
-import com.android.detection.camerascan.BaseCameraScanActivity
-import com.android.detection.camerascan.analyze.Analyzer
+import com.android.detection.detection.analyze.Analyzer
 import com.android.detection.detection.analyze.ObjectDetectionAnalyzer
 import com.google.mlkit.vision.objects.DetectedObject
 import com.king.app.dialog.AppDialog
