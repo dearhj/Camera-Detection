@@ -3,6 +3,7 @@ package com.android.detection.detection
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.widget.Button
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
@@ -22,18 +23,29 @@ class MainActivity : AppCompatActivity(),
     private var previewView: PreviewView? = null
     private var mCameraScan: CameraScan<MutableList<DetectedObject>>? = null
     private var objectBoundsView: ObjectBoundsView? = null
+    private var tack: Button? = null
+    private var picture: Button? = null
+    private var showDialog = true
 
-        override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.camera_scan)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowCompat.setDecorFitsSystemWindows(window, false)
             window.isNavigationBarContrastEnforced = false
         }
+        tack = findViewById(R.id.take)
+        picture = findViewById(R.id.picture)
         objectBoundsView = findViewById(R.id.object_bound)
         previewView = findViewById<PreviewView?>(R.id.previewView)
         mCameraScan = BaseCameraScan(this, previewView!!)
         mCameraScan!!.setAnalyzer(createAnalyzer()).setOnScanResultCallback(this)
+        tack?.setOnClickListener {
+
+        }
+        picture?.setOnClickListener {
+            showDialog = !showDialog
+        }
     }
 
     override fun onResume() {
@@ -96,26 +108,31 @@ class MainActivity : AppCompatActivity(),
     }
 
 
-    override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>) {
+    override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>?) {
         mCameraScan!!.setAnalyzeImage(true)
+        if (result == null){
+            objectBoundsView!!.setObjectBounds(null)
+            return
+        }
         objectBoundsView!!.setObjectBounds(result.result[0].boundingBox)
-//        val bitmap = result.bitmap?.drawRect { canvas, paint ->
-//            for (data in result.result) {
-//                canvas.drawRect(data.boundingBox, paint)
-//            }
-//        }
-//
-//        val config = AppDialogConfig(this, R.layout.result_dialog)
-//        config.setOnClickConfirm {
-//            AppDialog.INSTANCE.dismissDialog()
-//            mCameraScan!!.setAnalyzeImage(true)
-//        }.setOnClickCancel {
-//            AppDialog.INSTANCE.dismissDialog()
-////            finish()
-//        }
-//        val imageView = config.getView<ImageView>(R.id.ivDialogContent)
-//        imageView.setImageBitmap(bitmap)
-//        AppDialog.INSTANCE.showDialog(config, false)
+        if (!showDialog) return
+        val bitmap = result.bitmap?.drawRect { canvas, paint ->
+            for (data in result.result) {
+                canvas.drawRect(data.boundingBox, paint)
+            }
+        }
+
+        val config = AppDialogConfig(this, R.layout.result_dialog)
+        config.setOnClickConfirm {
+            AppDialog.INSTANCE.dismissDialog()
+            mCameraScan!!.setAnalyzeImage(true)
+        }.setOnClickCancel {
+            AppDialog.INSTANCE.dismissDialog()
+//            finish()
+        }
+        val imageView = config.getView<ImageView>(R.id.ivDialogContent)
+        imageView.setImageBitmap(bitmap)
+        AppDialog.INSTANCE.showDialog(config, false)
     }
 
     fun createAnalyzer(): Analyzer<MutableList<DetectedObject>?>? {

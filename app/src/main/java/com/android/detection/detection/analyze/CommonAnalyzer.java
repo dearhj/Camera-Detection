@@ -62,7 +62,7 @@ public abstract class CommonAnalyzer<T> implements Analyzer<T> {
             // 检测分析
             detectInImage(inputImage).addOnSuccessListener(result -> {
                 if (isNullOrEmpty(result)) {
-                    queue.add(nv21Data);
+                    joinQueue.set(false);
                     listener.onFailure(null);
                 } else {
                     FrameMetadata frameMetadata = new FrameMetadata(
@@ -73,11 +73,11 @@ public abstract class CommonAnalyzer<T> implements Analyzer<T> {
                     listener.onSuccess(new AnalyzeResult<>(nv21Data, ImageFormat.NV21, frameMetadata, result));
                 }
             }).addOnFailureListener(e -> {
-                queue.add(nv21Data);
+                joinQueue.set(false);
                 listener.onFailure(e);
             });
         } catch (Exception e) {
-            queue.add(nv21Data);
+            joinQueue.set(false);
             listener.onFailure(e);
         }
     }

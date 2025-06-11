@@ -18,4 +18,24 @@
         android:id="@+id/object_bound"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <Button
+        android:id="@+id/take"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="40dp"
+        android:text="拍照" />
+
+    <Button
+        android:id="@+id/picture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="40dp"
+        android:layout_marginStart="40dp"
+        android:text="相册" />
+
+
 </FrameLayout>

@@ -95,27 +95,29 @@ public class BaseCameraScan<T> extends CameraScan<T> {
     /**
      * 初始化
      */
+    private long currentTime = 0L;
     @SuppressLint("ClickableViewAccessibility")
     private void initData() {
-        System.out.println("执行这里了没？？？ ");
         mExecutorService = Executors.newSingleThreadExecutor();
         mResultLiveData = new MutableLiveData<>();
         mResultLiveData.observe(mLifecycleOwner, result -> {
-            if (result != null) {
+            long time = System.currentTimeMillis();
+            if ((time - currentTime) > 100) {
+                currentTime = time;
                 handleAnalyzeResult(result);
             } else if (mOnScanResultCallback != null) {
                 mOnScanResultCallback.onScanResultFailure();
             }
         });
 
-        mOnAnalyzeListener = new Analyzer.OnAnalyzeListener<T>() {
+        mOnAnalyzeListener = new Analyzer.OnAnalyzeListener<>() {
             @Override
             public void onSuccess(@NonNull AnalyzeResult<T> result) {
                 mResultLiveData.postValue(result);
             }
 
             @Override
-            public void onFailure(@Nullable Exception e) {
+            public void onFailure(Exception e) {
                 mResultLiveData.postValue(null);
             }
 

@@ -51,7 +51,12 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
         previewHeight = (screenHeight - (2 * verticalGap)).toInt()
     }
 
-    fun setObjectBounds(objectBounds: Rect) {
+    fun setObjectBounds(objectBounds: Rect?) {
+        if (objectBounds == null) {
+            this.objectBound = null
+            invalidate()
+            return
+        }
         scaleFactorLeft = objectBounds.left / CAMERA_WIDTH.toFloat()
         scaleFactorRight = objectBounds.right / CAMERA_WIDTH.toFloat()
         scaleFactorTop = objectBounds.top / CAMERA_HEIGHT.toFloat()
@@ -64,13 +69,12 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
         if (scaledObjectRect!!.top < verticalGap) scaledObjectRect!!.top = verticalGap
         if (scaledObjectRect!!.bottom > (screenHeight - verticalGap))
             scaledObjectRect!!.bottom = (screenHeight - verticalGap).toInt()
-
         this.objectBound = scaledObjectRect
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (objectBound != null) canvas.drawRect(objectBound!!, rectPaint!!)
+        objectBound?.let { canvas.drawRect(it, rectPaint!!) }
     }
 }

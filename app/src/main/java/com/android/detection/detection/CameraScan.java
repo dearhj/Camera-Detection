@@ -2,7 +2,6 @@ package com.android.detection.detection;
 
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 
@@ -90,7 +89,7 @@ public abstract class CameraScan<T> implements ICamera, ICameraControl {
          *
          * @param result 扫描结果
          */
-        void onScanResultCallback(@NonNull AnalyzeResult<T> result);
+        void onScanResultCallback(AnalyzeResult<T> result);
 
         /**
          * 扫描结果识别失败时触发此回调方法
