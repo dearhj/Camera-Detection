@@ -16,7 +16,7 @@ import kotlin.math.min
 
 class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
     private var objectBound: Rect? = null
-    private var scaledFaceRect: Rect? = null
+    private var scaledObjectRect: Rect? = null
     private var rectPaint: Paint? = null
     private var scaleFactorTop = 0f
     private var scaleFactorBottom = 0f
@@ -25,6 +25,7 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
     private var screenWidth = 0f
     private var screenHeight = 0f
     private var verticalGap = 0
+    private var previewHeight = 0
 
     init {
         init()
@@ -47,27 +48,24 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
                 .toFloat()
         verticalGap =
             ((screenHeight - screenWidth * (CAMERA_HEIGHT / CAMERA_WIDTH.toFloat())) / 2).toInt()
-
-        println("这里的值是》》   $screenWidth   $screenHeight ${(CAMERA_HEIGHT / CAMERA_WIDTH.toFloat())}  $verticalGap")
+        previewHeight = (screenHeight - (2 * verticalGap)).toInt()
     }
 
-    fun setFaceBounds(objectBounds: Rect) {
+    fun setObjectBounds(objectBounds: Rect) {
         scaleFactorLeft = objectBounds.left / CAMERA_WIDTH.toFloat()
         scaleFactorRight = objectBounds.right / CAMERA_WIDTH.toFloat()
         scaleFactorTop = objectBounds.top / CAMERA_HEIGHT.toFloat()
         scaleFactorBottom = objectBounds.bottom / CAMERA_HEIGHT.toFloat()
-        println("这里的值是 缩放比》》   $scaleFactorLeft   $scaleFactorRight   $scaleFactorTop    $scaleFactorBottom")
-        scaledFaceRect = Rect()
-        scaledFaceRect!!.left = (screenWidth * scaleFactorLeft).toInt()
-        scaledFaceRect!!.top = (screenHeight * scaleFactorTop).toInt()
-        scaledFaceRect!!.right = (screenWidth * scaleFactorRight).toInt()
-        scaledFaceRect!!.bottom = (screenHeight * scaleFactorBottom).toInt()
-        if (scaledFaceRect!!.top < verticalGap) scaledFaceRect!!.top = verticalGap
-        if (scaledFaceRect!!.bottom > (screenHeight - verticalGap))
-            scaledFaceRect!!.bottom = (screenHeight - verticalGap).toInt()
-        println("这里的值是 缩放后显示大小 》》   ${scaledFaceRect!!.left}   ${scaledFaceRect!!.top}   ${scaledFaceRect!!.right}    ${scaledFaceRect!!.bottom}")
+        scaledObjectRect = Rect()
+        scaledObjectRect!!.left = (screenWidth * scaleFactorLeft).toInt()
+        scaledObjectRect!!.right = (screenWidth * scaleFactorRight).toInt()
+        scaledObjectRect!!.top = (previewHeight * scaleFactorTop).toInt() + verticalGap
+        scaledObjectRect!!.bottom = (previewHeight * scaleFactorBottom).toInt() + verticalGap
+        if (scaledObjectRect!!.top < verticalGap) scaledObjectRect!!.top = verticalGap
+        if (scaledObjectRect!!.bottom > (screenHeight - verticalGap))
+            scaledObjectRect!!.bottom = (screenHeight - verticalGap).toInt()
 
-        this.objectBound = scaledFaceRect
+        this.objectBound = scaledObjectRect
         invalidate()
     }
 

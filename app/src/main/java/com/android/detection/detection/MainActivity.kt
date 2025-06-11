@@ -97,10 +97,8 @@ class MainActivity : AppCompatActivity(),
 
 
     override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>) {
-//        cameraScan.setAnalyzeImage(false)
-        println("这里收到了数据，，，，，，    ${result.result.size}")
         mCameraScan!!.setAnalyzeImage(true)
-        objectBoundsView!!.setFaceBounds(result.result[0].boundingBox)
+        objectBoundsView!!.setObjectBounds(result.result[0].boundingBox)
 //        val bitmap = result.bitmap?.drawRect { canvas, paint ->
 //            for (data in result.result) {
 //                canvas.drawRect(data.boundingBox, paint)
