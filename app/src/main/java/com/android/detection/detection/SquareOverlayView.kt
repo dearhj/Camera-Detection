@@ -16,8 +16,8 @@ class SquareOverlayView(context: Context, attrs: AttributeSet?) : View(context, 
         strokeWidth = 5f
     }
 
-    private var horizontalSpacing = 100
-    private var longitudinalSpacing = 250
+    private var horizontalSpacing = 50
+    private var longitudinalSpacing = 210
 
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {

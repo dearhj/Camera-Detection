@@ -10,16 +10,6 @@ import com.android.detection.detection.analyze.Analyzer;
 
 /**
  * 相机扫描基类定义；内置的默认实现见：{@link BaseCameraScan}
- * <p>
- * 快速实现扫描识别主要有以下几种方式：
- * <p>
- * 1、通过继承 {@link BaseCameraScanActivity}或其子类，可快速实现扫描识别。
- * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
- * <p>
- * 2、在你项目的Activity或者Fragment中实例化一个{@link BaseCameraScan}。（适用于想在扫描界面写交互逻辑，又因为项目
- * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}时使用）
- * <p>
- * 3、继承{@link CameraScan}自己实现一个，可参照默认实现类{@link BaseCameraScan}，其他步骤同方式2。（高级用法，谨慎使用）
  */
 @SuppressWarnings("unused")
 public abstract class CameraScan<T> implements ICamera, ICameraControl {

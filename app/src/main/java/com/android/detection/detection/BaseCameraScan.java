@@ -1,5 +1,8 @@
 package com.android.detection.detection;
 
+import static com.android.detection.detection.CameraConfig.CAMERA_HEIGHT;
+import static com.android.detection.detection.CameraConfig.CAMERA_WIDTH;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -29,16 +32,6 @@ import java.util.concurrent.Executors;
 
 /**
  * 相机扫描基类；{@link BaseCameraScan} 为 {@link CameraScan} 的默认实现
- * <p>
- * 快速实现扫描识别主要有以下几种方式：
- * <p>
- * 1、通过继承 {@link BaseCameraScanActivity}或其子类，可快速实现扫描识别。
- * （适用于大多数场景，自定义布局时需覆写getLayoutId方法）
- * <p>
- * 2、在你项目的Activity或者Fragment中实例化一个{@link BaseCameraScan}。（适用于想在扫描界面写交互逻辑，又因为项目
- * 架构或其它原因，无法直接或间接继承{@link BaseCameraScanActivity}时使用）
- * <p>
- * 3、继承{@link CameraScan}自己实现一个，可参照默认实现类{@link BaseCameraScan}，其他步骤同方式2。（高级用法，谨慎使用）
  */
 public class BaseCameraScan<T> extends CameraScan<T> {
     private final Context mContext;
@@ -141,7 +134,7 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                         .build();
                 // 预览
                 Preview preview = new Preview.Builder()
-                        .setTargetResolution(new Size(3072, 4096))
+                        .setTargetResolution(new Size(CAMERA_WIDTH, CAMERA_HEIGHT))
                         .build();
                 // 设置SurfaceProvider
                 preview.setSurfaceProvider(mPreviewView.getSurfaceProvider());
@@ -150,7 +143,7 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                 ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                         .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .setTargetResolution(new Size(3072, 4096))
+                        .setTargetResolution(new Size(CAMERA_WIDTH, CAMERA_HEIGHT))
                         .build();
 
                 imageAnalysis.setAnalyzer(mExecutorService, image -> {
@@ -167,7 +160,6 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                 mCamera = mCameraProviderFuture.get().bindToLifecycle(mLifecycleOwner, cameraSelector, preview, imageAnalysis);
 
                 ResolutionInfo previewResolutionInfo = preview.getResolutionInfo();
-                System.out.println("执行这里了吗？？？？？   " + (previewResolutionInfo != null));
                 if (previewResolutionInfo != null) {
                     System.out.println("这里的预览分辨率是？Preview resolution: " + previewResolutionInfo.getResolution());
                 }

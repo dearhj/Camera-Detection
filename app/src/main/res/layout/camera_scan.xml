@@ -8,4 +8,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
     <!-- 只需保证有布局内有PreviewView即可，然后自己可根据需要添加的控件 -->
+
+
+    <com.android.detection.detection.SquareOverlayView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.android.detection.detection.ObjectBoundsView
+        android:id="@+id/object_bound"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </FrameLayout>
