@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity(),
         tack = findViewById(R.id.take)
         picture = findViewById(R.id.picture)
         flash = findViewById(R.id.flash)
+        tack?.visibility = View.GONE
         objectBoundsView = findViewById(R.id.object_bound)
         previewView = findViewById<PreviewView?>(R.id.previewView)
         mCameraScan = BaseCameraScan(this, previewView!!)
@@ -154,10 +156,14 @@ class MainActivity : AppCompatActivity(),
     override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>?) {
         mCameraScan!!.setAnalyzeImage(true)
         if (result == null) {
-            objectBoundsView!!.setObjectBounds(null)
+            objectBoundsView!!.setObjectBounds(null) {}
+            tack?.visibility = View.GONE
             return
         }
-        objectBoundsView!!.setObjectBounds(result.result[0].boundingBox)
+        objectBoundsView!!.setObjectBounds(result.result[0].boundingBox) {
+            if (it) tack?.visibility = View.VISIBLE
+            else tack?.visibility = View.GONE
+        }
 //        val bitmap = result.bitmap?.drawRect { canvas, paint ->
 //            for (data in result.result) {
 //                canvas.drawRect(data.boundingBox, paint)

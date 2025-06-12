@@ -51,7 +51,7 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
         previewHeight = (screenHeight - (2 * verticalGap)).toInt()
     }
 
-    fun setObjectBounds(objectBounds: Rect?) {
+    fun setObjectBounds(objectBounds: Rect?, canTake: (Boolean) -> Unit) {
         if (objectBounds == null) {
             this.objectBound = null
             invalidate()
@@ -70,6 +70,12 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
         if (scaledObjectRect!!.bottom > (screenHeight - verticalGap))
             scaledObjectRect!!.bottom = (screenHeight - verticalGap).toInt()
         this.objectBound = scaledObjectRect
+        if (scaledObjectRect!!.left >= 50 &&
+            scaledObjectRect!!.right <= screenWidth - 50 &&
+            scaledObjectRect!!.top >= 210 &&
+            scaledObjectRect!!.bottom <= screenHeight - 210
+        ) canTake(true)
+        else canTake(false)
         invalidate()
     }
 
