@@ -21,14 +21,6 @@ public interface ICamera {
     void takePhoto();
 
     /**
-     * 获取 {@link Camera}
-     *
-     * @return {@link Camera}
-     */
-    @Nullable
-    Camera getCamera();
-
-    /**
      * 释放
      */
     void release();

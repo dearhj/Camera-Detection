@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.CAMERA_SERVICE
-import android.content.pm.PackageManager
 import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.Sensor
@@ -32,7 +31,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
-import androidx.camera.core.Camera
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
@@ -464,29 +462,14 @@ class BaseCamera2Scan<T>(
         flashFlag = torch
     }
 
-    override fun isTorchEnabled(): Boolean {
-        return false
-    }
-
-    override fun hasFlashUnit(): Boolean {
-        return mContext.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
-    }
-
     override fun setOnScanResultCallback(callback: OnScanResultCallback<T?>?): CameraScan<T> {
         this.mOnScanResultCallback = callback
         return this
     }
 
-    override fun getCamera(): Camera? {
-        return null
-    }
 
     override fun release() {
         isAnalyze = false
         stopCamera()
-    }
-
-    override fun bindFlashlightView(flashlightView: View?): CameraScan<T> {
-        return this
     }
 }

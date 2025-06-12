@@ -5,25 +5,10 @@ package com.android.detection.detection;
  */
 @SuppressWarnings("unused")
 public interface ICameraControl {
-
     /**
      * 设置闪光灯（手电筒）是否开启
      *
      * @param torch 是否开启闪光灯（手电筒）
      */
     void enableTorch(boolean torch);
-
-    /**
-     * 闪光灯（手电筒）是否开启
-     *
-     * @return 闪光灯（手电筒）是否开启
-     */
-    boolean isTorchEnabled();
-
-    /**
-     * 是否支持闪光灯
-     *
-     * @return 是否支持闪光灯
-     */
-    boolean hasFlashUnit();
 }

@@ -9,7 +9,6 @@ import static com.android.detection.detection.CameraConfig.TAKE_PICTURE_WIDTH;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -17,12 +16,10 @@ import android.hardware.SensorManager;
 import android.provider.MediaStore;
 import android.util.Size;
 import android.view.Surface;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -373,25 +370,9 @@ public class BaseCameraScan<T> extends CameraScan<T> {
     }
 
     @Override
-    public boolean isTorchEnabled() {
-        return false;
-    }
-
-    @Override
-    public boolean hasFlashUnit() {
-        return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
-    }
-
-    @Override
     public CameraScan<T> setOnScanResultCallback(OnScanResultCallback<T> callback) {
         this.mOnScanResultCallback = callback;
         return this;
-    }
-
-    @Nullable
-    @Override
-    public Camera getCamera() {
-        return mCamera;
     }
 
     @Override
@@ -401,11 +382,6 @@ public class BaseCameraScan<T> extends CameraScan<T> {
             mExecutorService.shutdown();
         }
         stopCamera();
-    }
-
-    @Override
-    public CameraScan<T> bindFlashlightView(@Nullable View flashlightView) {
-        return this;
     }
 
 }
