@@ -2,6 +2,7 @@ package com.android.detection.detection
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Context
 import android.content.Context.CAMERA_SERVICE
 import android.content.pm.PackageManager
@@ -17,23 +18,31 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.media.ImageReader
+import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Range
-import android.util.Size
 import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.camera.core.Camera
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import com.android.detection.detection.CameraConfig.CAMERA_HEIGHT
+import com.android.detection.detection.CameraConfig.CAMERA_WIDTH
+import com.android.detection.detection.CameraConfig.TAKE_PICTURE_HEIGHT
+import com.android.detection.detection.CameraConfig.TAKE_PICTURE_WIDTH
 import com.android.detection.detection.analyze.Analyzer
 import com.android.detection.detection.analyze.Analyzer.OnAnalyzeListener
+import java.io.OutputStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -73,8 +82,6 @@ class BaseCamera2Scan<T>(
      */
     private var mResultLiveData: MutableLiveData<AnalyzeResult<T?>?>? = null
 
-    private var mRotationLiveData: MutableLiveData<Int?>? = null
-
     /**
      * 扫描结果回调
      */
@@ -88,7 +95,6 @@ class BaseCamera2Scan<T>(
     private var sensorManager: SensorManager? = null
     private var gravitySensor: Sensor? = null
     private var sensorEventListener: SensorEventListener? = null
-    private var currentGravityValue = 0
     private var gravityValue = 0
 
 
@@ -98,11 +104,11 @@ class BaseCamera2Scan<T>(
     private var currentCameraId = "0" //当前ID
     private var hasFrontCamera = false
     private var hasBackCamera = false
-    private var previewSizes: Size? = null
     private var screenWidth = 0
     private var screenHeight = 0
 
     private var imageReader: ImageReader? = null
+    private var imageReaderPic: ImageReader? = null
     private var cameraDevice: CameraDevice? = null
     private var previewBuilder: CaptureRequest.Builder? = null
     private var cameraCaptureSession: CameraCaptureSession? = null
@@ -141,17 +147,6 @@ class BaseCamera2Scan<T>(
                 mOnScanResultCallback!!.onScanResultFailure()
             }
         })
-        mRotationLiveData = MutableLiveData<Int?>()
-        mRotationLiveData!!.observe(mLifecycleOwner, Observer { rotation: Int? ->
-            if (currentGravityValue != rotation) {
-                currentGravityValue = rotation!!
-                println("这里方向变化了。    $rotation")
-                try {
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        })
 
         mOnAnalyzeListener = object : OnAnalyzeListener<T?> {
             override fun onSuccess(result: AnalyzeResult<T?>) {
@@ -167,7 +162,7 @@ class BaseCamera2Scan<T>(
         gravitySensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_GRAVITY)
         sensorEventListener = object : SensorEventListener {
             override fun onSensorChanged(sensorEvent: SensorEvent) {
-                if (sensorEvent.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                if (sensorEvent.sensor.type == Sensor.TYPE_GRAVITY) {
                     val x = sensorEvent.values[0]
                     val y = sensorEvent.values[1]
                     if (x > 3) gravityValue = 3
@@ -175,7 +170,6 @@ class BaseCamera2Scan<T>(
                     else if (y > 3) gravityValue = 0
                     else if (y < -3) gravityValue = 2
                     else if (x >= -1.0 && x <= 1.0 && y >= -1.0 && y <= 1.0) gravityValue = 0
-//                    mRotationLiveData.postValue(gravityValue);
                 }
             }
 
@@ -193,8 +187,8 @@ class BaseCamera2Scan<T>(
         handlerThread!!.start()
         handler = Handler(handlerThread!!.looper)
         imageReader = ImageReader.newInstance(
-            previewSizes!!.width,
-            previewSizes!!.height,
+            CAMERA_HEIGHT,
+            CAMERA_WIDTH,
             ImageFormat.YUV_420_888,
             2 // 缓冲区数量
         )
@@ -217,6 +211,41 @@ class BaseCamera2Scan<T>(
                 }
             })
         }, handler)
+
+        imageReaderPic = ImageReader.newInstance(
+            TAKE_PICTURE_HEIGHT,
+            TAKE_PICTURE_WIDTH,
+            ImageFormat.JPEG,
+            2 // 缓冲区数量
+        )
+        imageReaderPic!!.setOnImageAvailableListener({ reader ->
+            val image = reader.acquireLatestImage()
+            val buffer = image.planes[0].buffer
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "Photo_${System.currentTimeMillis()}")
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Camera Detection")
+            }
+
+            val uri: Uri? = mContext.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            val outputStream1: OutputStream? = uri?.let { mContext.contentResolver.openOutputStream(it) }
+            outputStream1?.write(bytes)
+            outputStream1?.close()
+            image.close()
+        }, null)
+
+        captureCallback = object : CaptureCallback() {
+            override fun onCaptureCompleted(
+                session: CameraCaptureSession,
+                request: CaptureRequest,
+                result: TotalCaptureResult
+            ) {
+                Toast.makeText(mContext, "拍照成功", Toast.LENGTH_SHORT).show()
+            }
+
+        }
     }
 
     private fun getCameraInfo(): Boolean {
@@ -257,7 +286,6 @@ class BaseCamera2Scan<T>(
 
             val list = map!!.getOutputSizes(SurfaceTexture::class.java)
             list.forEach { println("这里的帧率是？    ${it.height}   ${it.width}") }
-            previewSizes = Size(2560, 1920)
             val layoutParams = textureView.layoutParams
             layoutParams.width = screenHeight
             layoutParams.height = (screenHeight * 1.333333).toInt()
@@ -323,7 +351,6 @@ class BaseCamera2Scan<T>(
 
     private fun startPreview(surface: SurfaceTexture) {
         try {
-            if (previewSizes == null) return
             val surface = Surface(surface)
             previewBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             //设置预览输出的界面
@@ -332,7 +359,7 @@ class BaseCamera2Scan<T>(
             previewBuilder!!.addTarget(surface)
             previewBuilder!!.addTarget(imageReader!!.surface)
             cameraDevice!!.createCaptureSession(
-                listOf(surface, imageReader!!.surface),
+                listOf(surface, imageReader!!.surface, imageReaderPic!!.surface),
                 object : CameraCaptureSession.StateCallback() {
                     override fun onConfigured(session: CameraCaptureSession) {
                         cameraCaptureSession = session
@@ -362,7 +389,16 @@ class BaseCamera2Scan<T>(
     }
 
     override fun takePhoto() {
-
+        var rotationCompensation = 0
+        if (gravityValue == 0) rotationCompensation = 90
+        else if (gravityValue == 1) rotationCompensation = 180
+        else if (gravityValue == 2) rotationCompensation = 270
+        else if (gravityValue == 3) rotationCompensation = 0
+        val stillCaptureRequestBuilder =
+            cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+        stillCaptureRequestBuilder.set<Int?>(CaptureRequest.JPEG_ORIENTATION, rotationCompensation)
+        stillCaptureRequestBuilder.addTarget(imageReaderPic!!.surface)
+        cameraCaptureSession!!.capture(stillCaptureRequestBuilder.build(), captureCallback, null)
     }
 
     /**
