@@ -1,5 +1,6 @@
 package com.android.detection.detection;
 
+import static android.content.Context.SENSOR_SERVICE;
 import static com.android.detection.detection.CameraConfig.CAMERA_HEIGHT;
 import static com.android.detection.detection.CameraConfig.CAMERA_WIDTH;
 import static com.android.detection.detection.CameraConfig.TAKE_PICTURE_HEIGHT;
@@ -9,8 +10,13 @@ import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.provider.MediaStore;
 import android.util.Size;
+import android.view.Surface;
 import android.view.View;
 import android.widget.Toast;
 
@@ -77,6 +83,8 @@ public class BaseCameraScan<T> extends CameraScan<T> {
      * 分析结果
      */
     private MutableLiveData<AnalyzeResult<T>> mResultLiveData;
+
+    private MutableLiveData<Integer> mRotationLiveData;
     /**
      * 扫描结果回调
      */
@@ -90,6 +98,14 @@ public class BaseCameraScan<T> extends CameraScan<T> {
     private CameraSelector cameraSelector;
     private Preview preview;
     private ImageAnalysis imageAnalysis;
+
+    private ProcessCameraProvider processCameraProvider;
+
+    private SensorManager sensorManager;
+    private Sensor gravitySensor;
+    private SensorEventListener sensorEventListener;
+    private int currentGravityValue = 0;
+    private int gravityValue = 0;
 
     public BaseCameraScan(@NonNull ComponentActivity activity, @NonNull PreviewView previewView) {
         this(activity, activity, previewView);
@@ -124,6 +140,30 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                 mOnScanResultCallback.onScanResultFailure();
             }
         });
+        mRotationLiveData = new MutableLiveData<>();
+        mRotationLiveData.observe(mLifecycleOwner, rotation -> {
+            if (currentGravityValue != rotation) {
+                currentGravityValue = rotation;
+                System.out.println("这里方向变化了。   $rotation " + rotation);
+                try {
+                    imageCapture = new ImageCapture.Builder()
+                            .setTargetResolution(new Size(TAKE_PICTURE_WIDTH, TAKE_PICTURE_HEIGHT))
+                            .setTargetRotation(rotation)
+                            .build();
+                    // 重新绑定到生命周期
+                    if (mCamera != null) processCameraProvider.unbindAll();
+                    mCamera = processCameraProvider.bindToLifecycle(
+                            mLifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageAnalysis,
+                            imageCapture
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
         mOnAnalyzeListener = new Analyzer.OnAnalyzeListener<>() {
             @Override
@@ -137,6 +177,29 @@ public class BaseCameraScan<T> extends CameraScan<T> {
             }
 
         };
+
+        sensorManager = (SensorManager) mContext.getSystemService(SENSOR_SERVICE);
+        gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        sensorEventListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
+                if (sensorEvent.sensor.getType() == Sensor.TYPE_GRAVITY) {
+                    float x = sensorEvent.values[0];
+                    float y = sensorEvent.values[1];
+                    if (x > 3) gravityValue = 3;
+                    else if (x < -3) gravityValue = 1;
+                    else if (y > 3) gravityValue = 0;
+                    else if (y < -3) gravityValue = 2;
+                    else if (x >= -1.0 && x <= 1.0 && y >= -1.0 && y <= 1.0) gravityValue = 0;
+//                    mRotationLiveData.postValue(gravityValue);
+                }
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
     }
 
     @Override
@@ -145,6 +208,7 @@ public class BaseCameraScan<T> extends CameraScan<T> {
         mCameraProviderFuture = ProcessCameraProvider.getInstance(mContext);
         mCameraProviderFuture.addListener(() -> {
             try {
+                processCameraProvider = mCameraProviderFuture.get();
                 // 相机选择器
                 cameraSelector = new CameraSelector.Builder()
                         .requireLensFacing(CameraSelector.LENS_FACING_BACK)
@@ -170,12 +234,13 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                     image.close();
                 });
                 imageCapture = new ImageCapture.Builder()
+                        .setTargetRotation(Surface.ROTATION_0)
                         .setTargetResolution(new Size(TAKE_PICTURE_WIDTH, TAKE_PICTURE_HEIGHT))
                         .build();
-                if (mCamera != null) mCameraProviderFuture.get().unbindAll();
+                if (mCamera != null) processCameraProvider.unbindAll();
 
                 // 绑定到生命周期
-                mCamera = mCameraProviderFuture.get().bindToLifecycle(mLifecycleOwner, cameraSelector, preview, imageAnalysis, imageCapture);
+                mCamera = processCameraProvider.bindToLifecycle(mLifecycleOwner, cameraSelector, preview, imageAnalysis, imageCapture);
 
                 ResolutionInfo previewResolutionInfo = preview.getResolutionInfo();
                 if (previewResolutionInfo != null) {
@@ -194,6 +259,11 @@ public class BaseCameraScan<T> extends CameraScan<T> {
             }
 
         }, ContextCompat.getMainExecutor(mContext));
+        sensorManager.registerListener(
+                sensorEventListener,
+                gravitySensor,
+                SensorManager.SENSOR_DELAY_NORMAL
+        );
     }
 
     @Override
@@ -251,9 +321,10 @@ public class BaseCameraScan<T> extends CameraScan<T> {
 
     @Override
     public void stopCamera() {
-        if (mCameraProviderFuture != null) {
+        sensorManager.unregisterListener(sensorEventListener);
+        if (mCameraProviderFuture != null && processCameraProvider != null) {
             try {
-                mCameraProviderFuture.get().unbindAll();
+                processCameraProvider.unbindAll();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -288,8 +359,8 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                     .setFlashMode(flashMode)
                     .build();
             // 重新绑定到生命周期
-            if (mCamera != null) mCameraProviderFuture.get().unbindAll();
-            mCamera = mCameraProviderFuture.get().bindToLifecycle(
+            if (mCamera != null) processCameraProvider.unbindAll();
+            mCamera = processCameraProvider.bindToLifecycle(
                     mLifecycleOwner,
                     cameraSelector,
                     preview,
