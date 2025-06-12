@@ -18,6 +18,8 @@ public interface ICamera {
      */
     void stopCamera();
 
+    void takePhoto();
+
     /**
      * 获取 {@link Camera}
      *

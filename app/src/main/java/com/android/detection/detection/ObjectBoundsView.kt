@@ -9,8 +9,8 @@ import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.view.View
 import android.view.WindowManager
-import com.android.detection.detection.CameraConfig.CAMERA_HEIGHT
-import com.android.detection.detection.CameraConfig.CAMERA_WIDTH
+import com.android.detection.detection.CameraConfig.ANALYZE_HEIGHT
+import com.android.detection.detection.CameraConfig.ANALYZE_WIDTH
 import kotlin.math.max
 import kotlin.math.min
 
@@ -47,7 +47,7 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
             max(displayMetrics.widthPixels.toDouble(), displayMetrics.heightPixels.toDouble())
                 .toFloat()
         verticalGap =
-            ((screenHeight - screenWidth * (CAMERA_HEIGHT / CAMERA_WIDTH.toFloat())) / 2).toInt()
+            ((screenHeight - screenWidth * (ANALYZE_HEIGHT / ANALYZE_WIDTH.toFloat())) / 2).toInt()
         previewHeight = (screenHeight - (2 * verticalGap)).toInt()
     }
 
@@ -57,10 +57,10 @@ class ObjectBoundsView(context: Context, attrs: AttributeSet?) : View(context, a
             invalidate()
             return
         }
-        scaleFactorLeft = objectBounds.left / CAMERA_WIDTH.toFloat()
-        scaleFactorRight = objectBounds.right / CAMERA_WIDTH.toFloat()
-        scaleFactorTop = objectBounds.top / CAMERA_HEIGHT.toFloat()
-        scaleFactorBottom = objectBounds.bottom / CAMERA_HEIGHT.toFloat()
+        scaleFactorLeft = objectBounds.left / ANALYZE_WIDTH.toFloat()
+        scaleFactorRight = objectBounds.right / ANALYZE_WIDTH.toFloat()
+        scaleFactorTop = objectBounds.top / ANALYZE_HEIGHT.toFloat()
+        scaleFactorBottom = objectBounds.bottom / ANALYZE_HEIGHT.toFloat()
         scaledObjectRect = Rect()
         scaledObjectRect!!.left = (screenWidth * scaleFactorLeft).toInt()
         scaledObjectRect!!.right = (screenWidth * scaleFactorRight).toInt()

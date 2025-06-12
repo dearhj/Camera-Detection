@@ -1,12 +1,19 @@
 package com.android.detection.detection
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.provider.Settings
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import com.android.detection.detection.analyze.Analyzer
 import com.android.detection.detection.analyze.ObjectDetectionAnalyzer
@@ -16,6 +23,7 @@ import com.king.app.dialog.AppDialog
 import com.king.app.dialog.AppDialogConfig
 
 
+@RequiresApi(Build.VERSION_CODES.R)
 class MainActivity : AppCompatActivity(),
     CameraScan.OnScanResultCallback<MutableList<DetectedObject>> {
 
@@ -25,31 +33,50 @@ class MainActivity : AppCompatActivity(),
     private var objectBoundsView: ObjectBoundsView? = null
     private var tack: Button? = null
     private var picture: Button? = null
-    private var showDialog = true
+    private var flash: Button? = null
+    private var flashStatus = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.camera_scan)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            window.isNavigationBarContrastEnforced = false
-        }
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.isNavigationBarContrastEnforced = false
         tack = findViewById(R.id.take)
         picture = findViewById(R.id.picture)
+        flash = findViewById(R.id.flash)
         objectBoundsView = findViewById(R.id.object_bound)
         previewView = findViewById<PreviewView?>(R.id.previewView)
         mCameraScan = BaseCameraScan(this, previewView!!)
         mCameraScan!!.setAnalyzer(createAnalyzer()).setOnScanResultCallback(this)
-        tack?.setOnClickListener {
-
+        flash?.setOnClickListener {
+            if (!flashStatus) {
+                flashStatus = true
+                mCameraScan?.enableTorch(true)
+                flash?.text = "闪光灯开"
+            } else {
+                flashStatus = false
+                mCameraScan?.enableTorch(false)
+                flash?.text = "闪光灯关"
+            }
         }
+        tack?.setOnClickListener { mCameraScan?.takePhoto() }
         picture?.setOnClickListener {
-            showDialog = !showDialog
+            try {
+                Intent(
+                    Intent.ACTION_VIEW,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                ).apply { startActivity(this) }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
+        requestFilePermission()
     }
 
     override fun onResume() {
         startCamera()
+        flashStatus = false
+        flash?.text = "闪光灯关"
         super.onResume()
     }
 
@@ -57,6 +84,22 @@ class MainActivity : AppCompatActivity(),
     override fun onDestroy() {
         releaseCamera()
         super.onDestroy()
+    }
+
+    fun requestFilePermission() {
+        if (!Environment.isExternalStorageManager()) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = "package:${applicationContext.packageName}".toUri()
+            startActivityForResult(intent, 2)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 2) {
+            if (Environment.isExternalStorageManager()) {
+            } else Toast.makeText(this, "文件读写权限被拒绝，功能将受限", Toast.LENGTH_SHORT).show()
+        }
     }
 
     /**
@@ -110,29 +153,28 @@ class MainActivity : AppCompatActivity(),
 
     override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>?) {
         mCameraScan!!.setAnalyzeImage(true)
-        if (result == null){
+        if (result == null) {
             objectBoundsView!!.setObjectBounds(null)
             return
         }
         objectBoundsView!!.setObjectBounds(result.result[0].boundingBox)
-        if (!showDialog) return
-        val bitmap = result.bitmap?.drawRect { canvas, paint ->
-            for (data in result.result) {
-                canvas.drawRect(data.boundingBox, paint)
-            }
-        }
-
-        val config = AppDialogConfig(this, R.layout.result_dialog)
-        config.setOnClickConfirm {
-            AppDialog.INSTANCE.dismissDialog()
-            mCameraScan!!.setAnalyzeImage(true)
-        }.setOnClickCancel {
-            AppDialog.INSTANCE.dismissDialog()
-//            finish()
-        }
-        val imageView = config.getView<ImageView>(R.id.ivDialogContent)
-        imageView.setImageBitmap(bitmap)
-        AppDialog.INSTANCE.showDialog(config, false)
+//        val bitmap = result.bitmap?.drawRect { canvas, paint ->
+//            for (data in result.result) {
+//                canvas.drawRect(data.boundingBox, paint)
+//            }
+//        }
+//
+//        val config = AppDialogConfig(this, R.layout.result_dialog)
+//        config.setOnClickConfirm {
+//            AppDialog.INSTANCE.dismissDialog()
+//            mCameraScan!!.setAnalyzeImage(true)
+//        }.setOnClickCancel {
+//            AppDialog.INSTANCE.dismissDialog()
+////            finish()
+//        }
+//        val imageView = config.getView<ImageView>(R.id.ivDialogContent)
+//        imageView.setImageBitmap(bitmap)
+//        AppDialog.INSTANCE.showDialog(config, false)
     }
 
     fun createAnalyzer(): Analyzer<MutableList<DetectedObject>?>? {

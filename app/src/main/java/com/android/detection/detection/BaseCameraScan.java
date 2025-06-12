@@ -2,12 +2,17 @@ package com.android.detection.detection;
 
 import static com.android.detection.detection.CameraConfig.CAMERA_HEIGHT;
 import static com.android.detection.detection.CameraConfig.CAMERA_WIDTH;
+import static com.android.detection.detection.CameraConfig.TAKE_PICTURE_HEIGHT;
+import static com.android.detection.detection.CameraConfig.TAKE_PICTURE_WIDTH;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.provider.MediaStore;
 import android.util.Size;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
@@ -15,6 +20,8 @@ import androidx.annotation.Nullable;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.core.ResolutionInfo;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -27,6 +34,8 @@ import androidx.lifecycle.MutableLiveData;
 import com.android.detection.detection.analyze.Analyzer;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -77,6 +86,11 @@ public class BaseCameraScan<T> extends CameraScan<T> {
      */
     private Analyzer.OnAnalyzeListener<T> mOnAnalyzeListener;
 
+    private ImageCapture imageCapture;
+    private CameraSelector cameraSelector;
+    private Preview preview;
+    private ImageAnalysis imageAnalysis;
+
     public BaseCameraScan(@NonNull ComponentActivity activity, @NonNull PreviewView previewView) {
         this(activity, activity, previewView);
     }
@@ -96,6 +110,7 @@ public class BaseCameraScan<T> extends CameraScan<T> {
      * 初始化
      */
     private long currentTime = 0L;
+
     @SuppressLint("ClickableViewAccessibility")
     private void initData() {
         mExecutorService = Executors.newSingleThreadExecutor();
@@ -131,18 +146,18 @@ public class BaseCameraScan<T> extends CameraScan<T> {
         mCameraProviderFuture.addListener(() -> {
             try {
                 // 相机选择器
-                CameraSelector cameraSelector = new CameraSelector.Builder()
+                cameraSelector = new CameraSelector.Builder()
                         .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                         .build();
                 // 预览
-                Preview preview = new Preview.Builder()
+                preview = new Preview.Builder()
                         .setTargetResolution(new Size(CAMERA_WIDTH, CAMERA_HEIGHT))
                         .build();
                 // 设置SurfaceProvider
                 preview.setSurfaceProvider(mPreviewView.getSurfaceProvider());
 
                 // 设置图像分析分辨率
-                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                imageAnalysis = new ImageAnalysis.Builder()
                         .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .setTargetResolution(new Size(CAMERA_WIDTH, CAMERA_HEIGHT))
@@ -154,12 +169,13 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                     }
                     image.close();
                 });
-                if (mCamera != null) {
-                    mCameraProviderFuture.get().unbindAll();
-                }
+                imageCapture = new ImageCapture.Builder()
+                        .setTargetResolution(new Size(TAKE_PICTURE_WIDTH, TAKE_PICTURE_HEIGHT))
+                        .build();
+                if (mCamera != null) mCameraProviderFuture.get().unbindAll();
 
                 // 绑定到生命周期
-                mCamera = mCameraProviderFuture.get().bindToLifecycle(mLifecycleOwner, cameraSelector, preview, imageAnalysis);
+                mCamera = mCameraProviderFuture.get().bindToLifecycle(mLifecycleOwner, cameraSelector, preview, imageAnalysis, imageCapture);
 
                 ResolutionInfo previewResolutionInfo = preview.getResolutionInfo();
                 if (previewResolutionInfo != null) {
@@ -167,13 +183,51 @@ public class BaseCameraScan<T> extends CameraScan<T> {
                 }
                 ResolutionInfo imageResolutionInfo = imageAnalysis.getResolutionInfo();
                 if (imageResolutionInfo != null) {
-                    System.out.println("这里的回调分辨率是》ImageAnalysis resolution: " + imageResolutionInfo.getResolution());
+                    System.out.println("这里的分析分辨率是》ImageAnalysis resolution: " + imageResolutionInfo.getResolution());
+                }
+                ResolutionInfo jpgResolutionInfo = imageCapture.getResolutionInfo();
+                if (jpgResolutionInfo != null) {
+                    System.out.println("这里的拍照分辨率是》imageCapture resolution: " + jpgResolutionInfo.getResolution());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
         }, ContextCompat.getMainExecutor(mContext));
+    }
+
+    @Override
+    public void takePhoto() {
+        if (imageCapture != null) {
+            String name = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis());
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+            contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image");
+
+
+            ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(
+                    mContext.getContentResolver(),
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    contentValues
+            ).build();
+
+            imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(mContext),
+                    new ImageCapture.OnImageSavedCallback() {
+                        @Override
+                        public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                            String msg = "Photo capture succeeded: " + outputFileResults.getSavedUri();
+                            System.out.println("这里路径是： " + msg);
+                            Toast.makeText(mContext, "拍照成功", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onError(@NonNull ImageCaptureException exception) {
+                            System.out.println("这里什么原因？   " + exception.getMessage());
+                            Toast.makeText(mContext, "拍照失败", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
     }
 
     /**
@@ -226,6 +280,25 @@ public class BaseCameraScan<T> extends CameraScan<T> {
 
     @Override
     public void enableTorch(boolean torch) {
+        try {
+            int flashMode = ImageCapture.FLASH_MODE_OFF;
+            if (torch) flashMode = ImageCapture.FLASH_MODE_ON;
+            imageCapture = new ImageCapture.Builder()
+                    .setTargetResolution(new Size(TAKE_PICTURE_WIDTH, TAKE_PICTURE_HEIGHT))
+                    .setFlashMode(flashMode)
+                    .build();
+            // 重新绑定到生命周期
+            if (mCamera != null) mCameraProviderFuture.get().unbindAll();
+            mCamera = mCameraProviderFuture.get().bindToLifecycle(
+                    mLifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageAnalysis,
+                    imageCapture
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
