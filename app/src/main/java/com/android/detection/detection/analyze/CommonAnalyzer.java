@@ -100,31 +100,28 @@ public abstract class CommonAnalyzer<T> implements Analyzer<T> {
                     nv21Data,
                     image.getWidth(),
                     image.getHeight(),
-                    0,
+                    90,
                     InputImage.IMAGE_FORMAT_NV21
             );
             // 检测分析
             detectInImage(inputImage).addOnSuccessListener(result -> {
                 if (isNullOrEmpty(result)) {
-//                    queue.add(nv21Data);
                     joinQueue.set(false);
                     listener.onFailure(null);
                 } else {
                     FrameMetadata frameMetadata = new FrameMetadata(
-                            4096,
-                            3072,
-                            0);
+                            image.getWidth(),
+                            image.getHeight(),
+                            90);
                     joinQueue.set(false);
                     listener.onSuccess(new AnalyzeResult<>(nv21Data, ImageFormat.NV21, frameMetadata, result));
                 }
             }).addOnFailureListener(e -> {
-//                queue.add(nv21Data);
                 joinQueue.set(false);
                 listener.onFailure(e);
             });
         } catch (Exception e) {
             joinQueue.set(false);
-//            queue.add(nv21Data);
             listener.onFailure(e);
         }
     }
