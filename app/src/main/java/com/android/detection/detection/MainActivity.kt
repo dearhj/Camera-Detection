@@ -81,8 +81,8 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         startCamera()
-        flashStatus = false
-        flash?.text = "闪光灯关"
+//        flashStatus = false
+//        flash?.text = "闪光灯关"
         super.onResume()
     }
 

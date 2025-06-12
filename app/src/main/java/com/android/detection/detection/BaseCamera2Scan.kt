@@ -96,6 +96,7 @@ class BaseCamera2Scan<T>(
     private var gravitySensor: Sensor? = null
     private var sensorEventListener: SensorEventListener? = null
     private var gravityValue = 0
+    private var flashFlag = false
 
 
     private var cameraManager: CameraManager? = null
@@ -229,8 +230,11 @@ class BaseCamera2Scan<T>(
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Camera Detection")
             }
 
-            val uri: Uri? = mContext.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            val outputStream1: OutputStream? = uri?.let { mContext.contentResolver.openOutputStream(it) }
+            val uri: Uri? = mContext.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues
+            )
+            val outputStream1: OutputStream? =
+                uri?.let { mContext.contentResolver.openOutputStream(it) }
             outputStream1?.write(bytes)
             outputStream1?.close()
             image.close()
@@ -396,6 +400,10 @@ class BaseCamera2Scan<T>(
         else if (gravityValue == 3) rotationCompensation = 0
         val stillCaptureRequestBuilder =
             cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+        if (flashFlag) stillCaptureRequestBuilder.set(
+            CaptureRequest.CONTROL_AE_MODE,
+            CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH
+        )
         stillCaptureRequestBuilder.set<Int?>(CaptureRequest.JPEG_ORIENTATION, rotationCompensation)
         stillCaptureRequestBuilder.addTarget(imageReaderPic!!.surface)
         cameraCaptureSession!!.capture(stillCaptureRequestBuilder.build(), captureCallback, null)
@@ -453,7 +461,7 @@ class BaseCamera2Scan<T>(
     }
 
     override fun enableTorch(torch: Boolean) {
-
+        flashFlag = torch
     }
 
     override fun isTorchEnabled(): Boolean {
