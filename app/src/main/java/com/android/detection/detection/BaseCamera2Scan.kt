@@ -58,24 +58,6 @@ class BaseCamera2Scan<T>(
     private var mAnalyzer: Analyzer<T?>? = null
 
     /**
-     * 是否分析
-     */
-    @Volatile
-    private var isAnalyze = true
-
-    /**
-     * 是否自动停止分析
-     */
-    @Volatile
-    private var isAutoStopAnalyze = true
-
-    /**
-     * 是否已经分析出结果
-     */
-    @Volatile
-    private var isAnalyzeResult = false
-
-    /**
      * 分析结果
      */
     private var mResultLiveData: MutableLiveData<AnalyzeResult<T?>?>? = null
@@ -84,11 +66,6 @@ class BaseCamera2Scan<T>(
      * 扫描结果回调
      */
     private var mOnScanResultCallback: OnScanResultCallback<T?>? = null
-
-    /**
-     * 分析监听器
-     */
-    private var mOnAnalyzeListener: OnAnalyzeListener<T?>? = null
 
     private var sensorManager: SensorManager? = null
     private var gravitySensor: Sensor? = null
@@ -114,6 +91,10 @@ class BaseCamera2Scan<T>(
     private var captureCallback: CaptureCallback? = null
     private var handlerThread: HandlerThread? = null
     private var handler: Handler? = null
+    private var surfaceTextureListener: TextureView.SurfaceTextureListener? = null
+    private var cameraOpened = false
+    private var previewWidth = 0
+    private var previewHeight = 0
 
     /**
      * 初始化
@@ -146,16 +127,6 @@ class BaseCamera2Scan<T>(
                 mOnScanResultCallback!!.onScanResultFailure()
             }
         })
-
-        mOnAnalyzeListener = object : OnAnalyzeListener<T?> {
-            override fun onSuccess(result: AnalyzeResult<T?>) {
-                mResultLiveData!!.postValue(result)
-            }
-
-            override fun onFailure(e: Exception?) {
-                mResultLiveData!!.postValue(null)
-            }
-        }
 
         sensorManager = mContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         gravitySensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_GRAVITY)
@@ -248,6 +219,33 @@ class BaseCamera2Scan<T>(
             }
 
         }
+        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            @RequiresPermission(Manifest.permission.CAMERA)
+            override fun onSurfaceTextureAvailable(
+                surface: SurfaceTexture,
+                width: Int,
+                height: Int
+            ) {
+                previewWidth = width
+                previewHeight = height
+                startCamera()
+            }
+
+            override fun onSurfaceTextureSizeChanged(
+                surface: SurfaceTexture,
+                width: Int,
+                height: Int
+            ) {
+            }
+
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                stopCamera()
+                return false
+            }
+
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+        }
+        textureView.surfaceTextureListener = surfaceTextureListener
     }
 
     private fun getCameraInfo(): Boolean {
@@ -296,64 +294,49 @@ class BaseCamera2Scan<T>(
             e.printStackTrace()
         }
     }
-
+    @SuppressLint("MissingPermission")
     override fun startCamera() {
         try {
-            textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                @RequiresPermission(Manifest.permission.CAMERA)
-                override fun onSurfaceTextureAvailable(
-                    surface: SurfaceTexture,
-                    width: Int,
-                    height: Int
-                ) {
-                    surface.setDefaultBufferSize(width, height)
-                    if (cameraManager == null) return
-                    cameraManager!!.openCamera(
-                        currentCameraId,
-                        object : CameraDevice.StateCallback() {
-                            override fun onOpened(camera: CameraDevice) {
-                                cameraDevice = camera
-                                startPreview(surface)
-                            }
+            if (cameraManager == null) return
+            if (cameraOpened) return
+            if (textureView.isAvailable) {
+                cameraManager!!.openCamera(
+                    currentCameraId,
+                    object : CameraDevice.StateCallback() {
+                        override fun onOpened(camera: CameraDevice) {
+                            cameraOpened = true
+                            cameraDevice = camera
+                            startPreview()
+                        }
 
-                            override fun onDisconnected(camera: CameraDevice) {
-                                stopCamera()
-                            }
+                        override fun onDisconnected(camera: CameraDevice) {
+                            cameraOpened = false
+                            stopCamera()
+                        }
 
-                            override fun onError(camera: CameraDevice, error: Int) {
-                                stopCamera()
-                            }
-                        }, null
-                    )
-                }
-
-                override fun onSurfaceTextureSizeChanged(
-                    surface: SurfaceTexture,
-                    width: Int,
-                    height: Int
-                ) {
-                }
-
-                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                    stopCamera()
-                    return false
-                }
-
-                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-            }
+                        override fun onError(camera: CameraDevice, error: Int) {
+                            cameraOpened = false
+                            stopCamera()
+                        }
+                    }, null
+                )
+            } else textureView.surfaceTextureListener = surfaceTextureListener
+            sensorManager!!.registerListener(
+                sensorEventListener,
+                gravitySensor,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        sensorManager!!.registerListener(
-            sensorEventListener,
-            gravitySensor,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
     }
 
-    private fun startPreview(surface: SurfaceTexture) {
+
+    private fun startPreview() {
         try {
-            val surface = Surface(surface)
+            val surfaceTexture = textureView.surfaceTexture
+            surfaceTexture!!.setDefaultBufferSize(previewWidth, previewHeight)
+            val surface = Surface(surfaceTexture)
             previewBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             //设置预览输出的界面
             val fpsRange = Range(1, 7)
@@ -414,42 +397,31 @@ class BaseCamera2Scan<T>(
      */
     @Synchronized
     private fun handleAnalyzeResult(result: AnalyzeResult<T?>?) {
-        if (isAnalyzeResult || !isAnalyze) {
-            return
-        }
-        isAnalyzeResult = true
-        if (isAutoStopAnalyze) {
-            isAnalyze = false
-        }
         if (mOnScanResultCallback != null) {
             mOnScanResultCallback!!.onScanResultCallback(result)
         }
-        isAnalyzeResult = false
     }
 
     override fun stopCamera() {
         sensorManager!!.unregisterListener(sensorEventListener)
         try {
+            cameraOpened = false
             //关闭相机
             if (cameraDevice != null) {
                 cameraDevice?.close()
                 cameraDevice = null
             }
             cameraCaptureSession?.close()
-            handler!!.removeCallbacksAndMessages(null)
-            handlerThread!!.quitSafely()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     override fun setAnalyzeImage(analyze: Boolean): CameraScan<T> {
-        isAnalyze = analyze
         return this
     }
 
     override fun setAutoStopAnalyze(autoStopAnalyze: Boolean): CameraScan<T> {
-        isAutoStopAnalyze = autoStopAnalyze
         return this
     }
 
@@ -469,7 +441,6 @@ class BaseCamera2Scan<T>(
 
 
     override fun release() {
-        isAnalyze = false
         stopCamera()
     }
 }

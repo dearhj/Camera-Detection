@@ -81,15 +81,13 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         startCamera()
-//        flashStatus = false
-//        flash?.text = "闪光灯关"
         super.onResume()
     }
 
 
-    override fun onDestroy() {
+    override fun onPause() {
         releaseCamera()
-        super.onDestroy()
+        super.onPause()
     }
 
     fun requestFilePermission() {
@@ -158,7 +156,6 @@ class MainActivity : AppCompatActivity(),
 
 
     override fun onScanResultCallback(result: AnalyzeResult<MutableList<DetectedObject>>?) {
-        mCameraScan!!.setAnalyzeImage(true)
         if (result == null) {
             objectBoundsView!!.setObjectBounds(null) {}
             tack?.visibility = View.GONE
