@@ -23,6 +23,7 @@ public interface Analyzer<T> {
      */
     void analyze(@NonNull ImageProxy imageProxy, @NonNull OnAnalyzeListener<T> listener);
     void analyze(@NonNull Image imageProxy, @NonNull OnAnalyzeListener<T> listener);
+    void analyze(@NonNull byte[] data, @NonNull OnAnalyzeListener<T> listener);
 
     /**
      * Analyze listener

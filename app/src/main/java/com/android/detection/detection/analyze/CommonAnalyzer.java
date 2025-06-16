@@ -126,6 +126,41 @@ public abstract class CommonAnalyzer<T> implements Analyzer<T> {
         }
     }
 
+    @Override
+    public void analyze(@NonNull byte[] data, @NonNull OnAnalyzeListener<T> listener) {
+        if (!joinQueue.get()) joinQueue.set(true);
+        else return;
+        try {
+            InputImage inputImage = InputImage.fromByteArray(
+                    data,
+                    1920,
+                    1440,
+                    90,
+                    InputImage.IMAGE_FORMAT_NV21
+            );
+            // 检测分析
+            detectInImage(inputImage).addOnSuccessListener(result -> {
+                if (isNullOrEmpty(result)) {
+                    joinQueue.set(false);
+                    listener.onFailure(null);
+                } else {
+                    FrameMetadata frameMetadata = new FrameMetadata(
+                            1920,
+                            1440,
+                            90);
+                    joinQueue.set(false);
+                    listener.onSuccess(new AnalyzeResult<>(data, ImageFormat.NV21, frameMetadata, result));
+                }
+            }).addOnFailureListener(e -> {
+                joinQueue.set(false);
+                listener.onFailure(e);
+            });
+        } catch (Exception e) {
+            joinQueue.set(false);
+            listener.onFailure(e);
+        }
+    }
+
     /**
      * 是否为空
      */

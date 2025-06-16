@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
+import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
 import android.widget.Button
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity(),
     private val requestCodeCamera: Int = 0x86
 //    private var previewView: PreviewView? = null
     private var previewView: TextureView? = null
+    private var surfaceView: SurfaceView? = null
     private var mCameraScan: CameraScan<MutableList<DetectedObject>>? = null
     private var objectBoundsView: ObjectBoundsView? = null
     private var tack: Button? = null
@@ -41,7 +43,8 @@ class MainActivity : AppCompatActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.camera2_scan)
+//        setContentView(R.layout.camera2_scan)
+        setContentView(R.layout.camera1_scan)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.isNavigationBarContrastEnforced = false
         tack = findViewById(R.id.take)
@@ -49,10 +52,11 @@ class MainActivity : AppCompatActivity(),
         flash = findViewById(R.id.flash)
         tack?.visibility = View.GONE
         objectBoundsView = findViewById(R.id.object_bound)
-//        previewView = findViewById<PreviewView?>(R.id.previewView)
-        previewView = findViewById<TextureView?>(R.id.previewView)
+//        previewView = findViewById<TextureView?>(R.id.previewView)
+        surfaceView = findViewById<SurfaceView?>(R.id.mSurfaceView)
 //        mCameraScan = BaseCameraScan(this, previewView!!)
-        mCameraScan = BaseCamera2Scan<MutableList<DetectedObject>>(this, this, previewView!!)
+//        mCameraScan = BaseCamera2Scan<MutableList<DetectedObject>>(this, this, previewView!!)
+        mCameraScan = BaseCamera1Scan<MutableList<DetectedObject>>(this, this, surfaceView!!)
         mCameraScan!!.setAnalyzer(createAnalyzer()).setOnScanResultCallback(this)
         flash?.setOnClickListener {
             if (!flashStatus) {
@@ -81,12 +85,14 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         startCamera()
+        App.isOut = false
         super.onResume()
     }
 
 
     override fun onPause() {
         releaseCamera()
+        App.isOut = true
         super.onPause()
     }
 
