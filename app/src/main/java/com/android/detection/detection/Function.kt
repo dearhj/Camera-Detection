@@ -31,7 +31,7 @@ fun Bitmap.drawRect(block: (canvas: Canvas, paint: Paint) -> Unit): Bitmap {
 }
 
 /**
- * 获取[Bitmap]
+ * 获取[Bitmap] test
  */
 fun Context.getBitmap(uri: Uri): Bitmap {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
